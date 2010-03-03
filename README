@@ -1,0 +1,88 @@
+Lightweight Ruby MRI promise extension
+  (c) 2010 Lourens Naudé (methodmissing), James Tucker (raggi), tmm1 && ice799 for pointers (pun intended)
+
+  http://github.com/methodmissing/promise
+
+This library works with Ruby 1.8 (1.9 pending) and is a more efficient
+implementation of the following Ruby code :
+
+  class Promise
+    def initialize(&blk)
+      @thread = Thread.new(&blk)
+      @result = nil
+    end
+  
+    def method_missing(meth, *args)
+      @result ||= @thread.value
+    end
+  end
+
+Examples :
+
+  promise = Promise.new{ 1000.times{ IO.read(__FILE__) } }
+  assert_equal 1000, promise.id # blocks only if we don't have an async result yet
+
+Challenges :
+
+  * Avoiding method_missing overhead, which bogs down even 1.9s BasicObject for this use case
+  * rb_define_method(rb_cPromise, "__send__", rb_promise_result_argc_any, -1);
+  * We attempt to negate some of that by overloading common Object members at compile time
+  * Ideally one should overload rb_call (block the current thread) and thus a Promise
+    implementation is best served as a MRI patch.
+
+Todo :
+
+  * ruby 1.9 support
+  * Fiber support
+  * reduce further method call overhead
+  * look into a symbol table for caching
+
+Performance :
+
+  methodmissing:promise lourens$ rake bench
+  (in /Users/lourens/projects/promise)
+  /Users/lourens/.rvm/rubies/ruby-1.8.7-p249/bin/ruby bench/promise.rb
+  Rehearsal --------------------------------------------------------------------
+  Promise                            0.010000   0.000000   0.010000 (  0.018255)
+  RubyPromise                        0.030000   0.000000   0.030000 (  0.024190)
+  Promise#==                         0.010000   0.000000   0.010000 (  0.017622)
+  RubyPromise#==                     0.020000   0.010000   0.030000 (  0.020867)
+  Promise#object_id                  0.010000   0.000000   0.010000 (  0.016699)
+  RubyPromise#object_id              0.020000   0.000000   0.020000 (  0.021970)
+  Promise#__send__                   0.020000   0.000000   0.020000 (  0.017142)
+  RubyPromise#__send__               0.020000   0.000000   0.020000 (  0.021984)
+  Promise (blocking)                 0.040000   0.030000   0.070000 (  0.072591)
+  RubyPromise (blocking)             0.050000   0.030000   0.080000 (  0.077348)
+  Promise#== (blocking)              0.050000   0.030000   0.080000 (  0.068011)
+  RubyPromise#== (blocking)          0.050000   0.020000   0.070000 (  0.084727)
+  Promise#object_id (blocking)       0.050000   0.030000   0.080000 (  0.069918)
+  RubyPromise#object_id (blocking)   0.050000   0.030000   0.080000 (  0.082319)
+  Promise#__send__ (blocking)        0.040000   0.020000   0.060000 (  0.071780)
+  RubyPromise#__send__ (blocking)    0.060000   0.030000   0.090000 (  0.088574)
+  ----------------------------------------------------------- total: 0.760000sec
+
+                                         user     system      total        real
+  Promise                            0.010000   0.000000   0.010000 (  0.014602)
+  RubyPromise                        0.020000   0.010000   0.030000 (  0.022575)
+  Promise#==                         0.010000   0.000000   0.010000 (  0.015162)
+  RubyPromise#==                     0.020000   0.000000   0.020000 (  0.019323)
+  Promise#object_id                  0.010000   0.000000   0.010000 (  0.015996)
+  RubyPromise#object_id              0.010000   0.000000   0.010000 (  0.019146)
+  Promise#__send__                   0.010000   0.010000   0.020000 (  0.015637)
+  RubyPromise#__send__               0.020000   0.000000   0.020000 (  0.019562)
+  Promise (blocking)                 0.040000   0.020000   0.060000 (  0.069022)
+  RubyPromise (blocking)             0.050000   0.030000   0.080000 (  0.080459)
+  Promise#== (blocking)              0.050000   0.030000   0.080000 (  0.068640)
+  RubyPromise#== (blocking)          0.050000   0.020000   0.070000 (  0.084409)
+  Promise#object_id (blocking)       0.050000   0.030000   0.080000 (  0.067952)
+  RubyPromise#object_id (blocking)   0.060000   0.030000   0.090000 (  0.085177)
+  Promise#__send__ (blocking)        0.040000   0.020000   0.060000 (  0.067793)
+  RubyPromise#__send__ (blocking)    0.060000   0.030000   0.090000 (  0.086539)
+
+To run the test suite:
+
+  rake
+
+To run the benchmarks:
+
+  rake bench
