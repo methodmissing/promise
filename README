@@ -20,11 +20,11 @@ implementation of the following Ruby code :
 Examples :
 
   promise = Promise.new{ 1000.times{ IO.read(__FILE__) } }
-  assert_equal 1000, promise.id # blocks only if we don't have an async result yet
+  assert_equal 1000, promise.id # blocks only if we don't have a result from the computation thread yet
 
 Challenges :
 
-  * Avoiding method_missing overhead, which bogs down even 1.9s BasicObject for this use case
+  * Avoiding method_missing overhead, which bogs down even 1.9's BasicObject for this use case
   * rb_define_method(rb_cPromise, "__send__", rb_promise_result_argc_any, -1);
   * We attempt to negate some of that by overloading common Object members at compile time
   * Ideally one should overload rb_call (block the current thread) and thus a Promise
