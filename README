@@ -3,6 +3,8 @@ Lightweight Ruby MRI promise extension
 
   http://github.com/methodmissing/promise
 
+  ** WORK IN PROGRESS **
+
 This library works with Ruby 1.8 (1.9 pending) and is a more efficient
 implementation of the following Ruby code :
 
